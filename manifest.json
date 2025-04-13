@@ -1,0 +1,32 @@
+{
+    "name": "Personal Adblocker",
+    "version": "1.0",
+    "description": "Man I really hate ads",
+    "manifest_version": 3,
+    "action": {
+      "default_icon": {
+        "16": "icons/outplayed_sml.png",
+        "48": "icons/outplayed_md.png",
+        "128": "icons/outplayed.png"
+      }
+    },
+    "permissions": ["declarativeNetRequest"],
+    "host_permissions": ["<all_urls>"],
+    "declarative_net_request": {
+      "rule_resources": [
+        {
+          "id": "blockRules",
+          "enabled": true,
+          "path": "rules.json"
+        }
+      ]
+    }, 
+    "content_scripts": [
+    {
+      "matches": ["*://www.youtube.com/*", "*://youtube.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_end"
+    }
+  ]
+  }
+  
