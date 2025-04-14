@@ -25,7 +25,8 @@
     {
       "matches": ["*://www.youtube.com/*", "*://youtube.com/*"],
       "js": ["content.js"],
-      "run_at": "document_end"
+      "run_at": "document_start",
+      "note": "this section leads to content.js, which removes banner and grid ads, also no more shorts"
     }
   ]
   }

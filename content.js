@@ -1,49 +1,95 @@
-// content.js
-
-// Function to block YouTube ads by removing known ad-related DOM elements
 function blockAds() {
-  // Block overlay ads (e.g., the "Skip Ads" overlay)
-  const adOverlays = document.querySelectorAll('.ytp-ad-overlay-container, .ytp-ad-player-overlay');
-  adOverlays.forEach(ad => ad.remove());
+    console.log("[🧩 MyExt] Running blockAds");
+  
+    let totalRemoved = 0;
 
-  // Block in-video ads (e.g., skippable video ads)
-  const inVideoAds = document.querySelectorAll('.video-ads, .ytp-ad-module');
-  inVideoAds.forEach(ad => ad.remove());
-
-  // Block any iframe with ad-related URLs
-  const iframes = document.querySelectorAll('iframe');
-  iframes.forEach(iframe => {
-    if (iframe.src.includes('googleads') || iframe.src.includes('doubleclick.net')) {
-      iframe.remove();
+    // Grid ads
+    document.querySelectorAll('ytd-rich-item-renderer').forEach(item => {
+      if (item.querySelector('ytd-ad-slot-renderer')) {
+        console.log("[🧩 MyExt] Removed a grid ad");
+        item.remove();
+        totalRemoved++;
+      }
+    });
+  
+    // Direct ad elements
+    const adSelectors = [
+      'ytd-ad-slot-renderer',
+      'ytd-rich-section-renderer',
+      'ytd-reel-shelf-renderer',
+      'ytd-rich-shelf-renderer',
+      'masthead-ad',
+      'ytd-search-pyv-renderer',
+      'ytd-promoted-video-renderer',
+      'ytd-compact-promoted-video-renderer', 
+      'ytd-display-ad-renderer',              
+      'ytd-video-masthead-ad-v3-renderer'    
+    ];
+  
+    adSelectors.forEach(selector => {
+      const nodes = document.querySelectorAll(selector);
+      if (nodes.length > 0) {
+        console.log(`[🧩 MyExt] Found ${nodes.length} elements for selector: ${selector}`);
+      }
+      nodes.forEach(el => {
+        el.remove();
+        totalRemoved++;
+      });
+    });
+  
+    // Check for videos with "Ad" badge
+    document.querySelectorAll('ytd-video-renderer, ytd-compact-video-renderer').forEach(el => {
+      const badge = el.querySelector('#badge .ytd-badge-supported-renderer');
+      if (badge && badge.textContent.toLowerCase().includes('ad')) {
+        el.remove();
+        console.log("[🧩 MyExt] Removed promoted video with badge");
+        totalRemoved++;
+      }
+    });
+  
+    console.log(`[🧩 MyExt] Total elements removed this run: ${totalRemoved}`);
+  }
+  
+  // Watch for new elements in the grid
+  function observeGrid() {
+    const grid = document.querySelector('#contents');
+  
+    if (!grid) {
+      console.log('[🧩 MyExt] #contents not found, retrying...');
+      setTimeout(observeGrid, 500); // retry until the grid is available
+      return;
     }
-  });
-}
-
-// Function to block common popup elements (e.g., "Turn off Adblock" or "Join our newsletter")
-function blockPopups() {
-  // Popup and modal selectors (can be adjusted for specific websites)
-  const popupSelectors = [
-    '.adblock-popup', // Common adblock detection popup
-    '.adblock-banner', // Another adblock detection banner
-    '.popup', // General popup class
-    '.modal', // General modal class
-    '.newsletter-popup', // Newsletter signup popups
-    '.cookie-banner', // Cookie consent banners that could block content
-    '.subscription-popup', // Subscriptions popups
-    '.overlay', // Overlay modal popups
-  ];
-
-  // Loop through all popup selectors and remove matching elements
-  popupSelectors.forEach(selector => {
-    const popups = document.querySelectorAll(selector);
-    popups.forEach(popup => popup.remove());
-  });
-}
-
-// Run the blockAds and blockPopups functions every second after the page loads
-window.addEventListener('load', function() {
-  setInterval(() => {
+  
+    const observer = new MutationObserver(() => {
+      blockAds();
+    });
+  
+    observer.observe(grid, { childList: true, subtree: true });
+    console.log('[🧩 MyExt] MutationObserver is active on #contents');
+  }
+  
+  // Handle SPA (URL) changes
+  function observeUrlChanges() {
+    let lastUrl = location.href;
+  
+    new MutationObserver(() => {
+      const currentUrl = location.href;
+      if (currentUrl !== lastUrl) {
+        console.log('[🧩 MyExt] URL changed:', currentUrl);
+        lastUrl = currentUrl;
+        setTimeout(() => {
+          blockAds();
+          observeGrid();
+        }, 1000); // delay to allow YouTube to render the new content
+      }
+    }).observe(document.body, { childList: true, subtree: true });
+  }
+  
+  // DOM ready entry point
+  document.addEventListener('DOMContentLoaded', () => {
+    console.log('[🧩 MyExt] DOM ready — initializing...');
     blockAds();
-    blockPopups();
-  }, 1000); // Check every 1 second for new popups or ads
-});
+    observeGrid();
+    observeUrlChanges();
+  });
+  
